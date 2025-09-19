@@ -1,0 +1,155 @@
+@if (hasSchedules()) {
+  <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+    <!-- Header Controls -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <!-- Date Range and Navigation -->
+      <div class="flex items-center gap-4">
+        <div class="flex items-center rounded-lg">
+          <button (click)="navigate(-1)" class="p-2 hover:bg-slate-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"><i class="fas fa-chevron-left text-slate-500"></i></button>
+          <button (click)="navigate(1)" class="p-2 hover:bg-slate-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"><i class="fas fa-chevron-right text-slate-500"></i></button>
+        </div>
+        <div class="text-lg font-semibold text-slate-700">
+          @if(viewMode() === 'week') {
+            <span>{{ currentWeek()[0].toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }} - {{ currentWeek()[6].toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }}</span>
+          } @else {
+            <span>{{ currentDate().toLocaleDateString('zh-CN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
+          }
+        </div>
+      </div>
+      
+      <!-- Search and View Toggles -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="relative">
+          <input type="text" placeholder="搜索..." [value]="searchQuery()" (input)="onSearch($event)" class="bg-white border border-slate-300 rounded-lg py-2 pl-4 pr-8 focus:ring-teal-500 focus:border-teal-500 w-full sm:w-48 transition-all text-sm">
+          <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        </div>
+        <div class="flex bg-slate-100 p-1 rounded-lg">
+          <button (click)="changeView('week')" [class]="viewMode() === 'week' ? 'bg-white shadow-sm text-teal-600' : 'text-slate-600'" class="px-3 py-1 text-sm font-semibold rounded-md transition-all">周</button>
+          <button (click)="changeView('day')" [class]="viewMode() === 'day' ? 'bg-white shadow-sm text-teal-600' : 'text-slate-600'" class="px-3 py-1 text-sm font-semibold rounded-md transition-all">日</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Display -->
+    @if(viewMode() === 'week') {
+      <!-- Week View -->
+      <div class="grid grid-cols-[auto_1fr] border-t border-l border-slate-200">
+        <!-- Time Column -->
+        <div class="grid grid-rows-[auto_1fr]">
+            <div class="h-16"></div> <!-- Empty corner -->
+            <div class="grid" [style.grid-template-rows]="'repeat(' + allPeriods().length + ', minmax(7rem, 1fr))'">
+                @for (period of allPeriods(); track period) {
+                    <div class="flex items-center justify-center p-2 border-b border-r border-slate-200">
+                        <span class="text-xs font-semibold text-slate-500">{{period}}</span>
+                    </div>
+                }
+            </div>
+        </div>
+        <!-- Days Grid -->
+        <div class="grid grid-cols-7">
+          @for (day of weekData(); track day.date) {
+            <div class="flex flex-col border-r border-slate-200">
+              <!-- Day Header -->
+              <div class="flex flex-col items-center p-2 h-16 border-b border-slate-200">
+                <span class="text-sm font-medium" [class]="isToday(day.date) ? 'text-teal-600' : 'text-slate-500'">{{ day.dayOfWeek }}</span>
+                <span 
+                  class="text-lg font-bold w-8 h-8 flex items-center justify-center rounded-full mt-1" 
+                  [class]="isToday(day.date) ? 'bg-teal-600 text-white' : 'text-slate-700'">
+                  {{ day.date.getDate() }}
+                </span>
+              </div>
+              <!-- Classes -->
+              <div class="grid flex-grow" [style.grid-template-rows]="'repeat(' + allPeriods().length + ', minmax(7rem, 1fr))'">
+                @for (cell of day.schedule; track cell.period) {
+                  <div class="p-1 border-b border-slate-200 space-y-1 overflow-y-auto">
+                    @for(classItem of cell.groupedClasses; track classItem.courseName) {
+                      @let colors = getCourseColor(classItem.courseName);
+                      <div class="p-2 rounded-md text-xs leading-tight" [class]="colors.bg + ' ' + colors.text">
+                        <p class="font-bold truncate">{{ classItem.courseName }}</p>
+                        <p class="truncate">{{ classItem.teacher }}</p>
+                        <p class="truncate text-slate-600 opacity-75">{{ classItem.location || '无' }}</p>
+                        <div class="border-t border-current opacity-20 my-1"></div>
+                        <div class="flex flex-wrap gap-x-1.5 gap-y-0.5 items-center leading-normal">
+                          @for(student of classItem.students; track student) {
+                            @let inConflict = isStudentInConflict(student, day.date, cell.period);
+                            <span
+                              class="inline-flex items-center px-1 rounded"
+                              [class]="inConflict ? 'text-red-800 bg-red-100 ring-1 ring-red-300' : ''"
+                              [title]="inConflict ? '时间冲突' : ''">
+                              @if(inConflict) {
+                                <i class="fas fa-exclamation-triangle fa-xs mr-1"></i>
+                              }
+                              <span class="font-medium">{{ student }}</span>
+                            </span>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    } @else {
+      <!-- Day View -->
+      <div class="border-t border-slate-200 pt-4">
+        @if (dayData().length > 0) {
+          <div class="space-y-6">
+            @for (periodData of dayData(); track periodData.period) {
+              <div>
+                <h3 class="font-bold text-teal-600 mb-2 border-b-2 border-slate-200 pb-2">{{ periodData.period }}</h3>
+                @if (periodData.groupedClasses.length > 0) {
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                    @for (classItem of periodData.groupedClasses; track classItem.courseName) {
+                      @let colors = getCourseColor(classItem.courseName);
+                      <div class="p-3 rounded-lg" [class]="colors.bg + ' ' + colors.text">
+                        <p class="font-bold text-base">{{ classItem.courseName }}</p>
+                        <p class="text-sm mt-1"><i class="fa-solid fa-chalkboard-user fa-fw mr-1.5 opacity-70"></i>{{ classItem.teacher }}</p>
+                        @if(classItem.location) {
+                          <p class="text-sm"><i class="fa-solid fa-location-dot fa-fw mr-1.5 opacity-70"></i>{{ classItem.location }}</p>
+                        }
+                        <div class="border-t border-current opacity-20 my-2"></div>
+                        <div class="flex items-center flex-wrap gap-1.5">
+                          <i class="fa-solid fa-users fa-fw mr-1.5 opacity-70 flex-shrink-0"></i>
+                          <div class="flex flex-wrap gap-1.5">
+                          @for(student of classItem.students; track student) {
+                            @let inConflict = isStudentInConflict(student, currentDate(), periodData.period);
+                            <span 
+                                class="text-sm font-medium px-1.5 py-0.5 rounded"
+                                [class]="inConflict ? 'text-red-800 bg-red-100 ring-1 ring-red-300' : ''"
+                                [title]="inConflict ? '时间冲突' : ''">
+                                @if(inConflict) {
+                                    <i class="fas fa-exclamation-triangle fa-xs mr-1"></i>
+                                }
+                                {{ student }}
+                            </span>
+                          }
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-sm text-slate-500 italic">该时段无课程。</p>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="text-center py-12">
+            <i class="fa-solid fa-calendar-check text-4xl text-slate-400 mb-4"></i>
+            <p class="text-slate-500">本日无课程。</p>
+          </div>
+        }
+      </div>
+    }
+  </div>
+} @else {
+  <div class="text-center py-12">
+    <i class="fa-solid fa-table-list text-6xl text-slate-400 mb-4"></i>
+    <h3 class="text-2xl font-bold text-slate-600">未加载课表</h3>
+    <p class="text-slate-500 mt-2">使用左侧面板添加课表以开始。</p>
+  </div>
+}

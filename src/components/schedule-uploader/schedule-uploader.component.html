@@ -1,0 +1,129 @@
+<div class="space-y-8">
+  <!-- Uploader Section -->
+  <div class="bg-white rounded-lg p-6 shadow-md">
+    <h2 class="text-xl font-bold text-slate-800 mb-4">添加课表</h2>
+    
+    <!-- Student Name Input -->
+    <div class="mb-4">
+      <label for="student-name" class="block text-sm font-medium text-slate-600 mb-1">学生姓名</label>
+      <input 
+        type="text" 
+        id="student-name"
+        placeholder="例如, 张三" 
+        [value]="studentName()"
+        (input)="studentName.set($any($event.target).value)"
+        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 text-sm"
+      >
+      <p class="text-xs text-slate-500 mt-1">若填写，此名称将覆盖JSON文件中的姓名。</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mb-4 border-b border-slate-200">
+      <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+        <button 
+          (click)="activeTab.set('upload')"
+          class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm"
+          [class]="activeTab() === 'upload' ? 'border-teal-500 text-teal-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'">
+          上传文件
+        </button>
+        <button 
+          (click)="activeTab.set('paste')"
+          class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm"
+          [class]="activeTab() === 'paste' ? 'border-teal-500 text-teal-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'">
+          粘贴JSON
+        </button>
+      </nav>
+    </div>
+
+    <!-- Content for Tabs -->
+    @if (activeTab() === 'upload') {
+      <div>
+        <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-teal-600 hover:text-teal-500 focus-within:outline-none block border-2 border-dashed border-slate-300 p-6 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+              <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span class="mt-2 block text-sm text-slate-600">
+              @if (!fileName()) {
+                <span>上传一个文件</span>
+              } @else {
+                <span class="font-semibold text-teal-600">{{ fileName() }}</span>
+              }
+            </span>
+            <span class="text-xs text-slate-500">JSON格式，最大10MB</span>
+          </div>
+          <input id="file-upload" name="file-upload" type="file" class="sr-only" accept=".json" (change)="onFileSelected($event)">
+        </label>
+      </div>
+    } @else {
+      <div>
+        <textarea 
+          rows="8" 
+          class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 text-sm font-mono" 
+          placeholder="在此处粘贴您的课表JSON..."
+          [value]="pasteContent()"
+          (input)="pasteContent.set($any($event.target).value)"></textarea>
+      </div>
+    }
+
+    <!-- Add Button -->
+    <button 
+      (click)="addSchedule()" 
+      [disabled]="(activeTab() === 'upload' && !fileContent()) || (activeTab() === 'paste' && !pasteContent()) || isUploading()"
+      class="mt-4 w-full bg-teal-600 text-white font-bold py-2.5 px-4 rounded-md hover:bg-teal-700 disabled:bg-slate-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm">
+      @if(isUploading()) {
+        <i class="fas fa-spinner fa-spin mr-2"></i>
+        <span>添加中...</span>
+      } @else {
+        <span>添加到课表</span>
+      }
+    </button>
+    
+    <!-- Status Message -->
+    @if (uploadStatus(); as status) {
+      <div 
+        class="mt-4 p-3 rounded-md text-sm" 
+        [class]="status.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+        <i [class]="status.success ? 'fa fa-check-circle' : 'fa fa-exclamation-triangle'" class="mr-2"></i>
+        {{ status.message }}
+      </div>
+    }
+  </div>
+
+  <!-- Team Members Section -->
+  <div class="bg-white rounded-lg p-6 shadow-md">
+    <h2 class="text-xl font-bold text-slate-800 mb-4">团队成员</h2>
+    @if (teamMembers().length > 0) {
+      <ul class="space-y-3 mb-6">
+        @for (member of teamMembers(); track member.name) {
+          <li class="flex items-center justify-between group">
+            <div class="flex items-center">
+              <span class="h-2.5 w-2.5 rounded-full mr-3" [class]="getStudentColorDot(member.name)"></span>
+              <div>
+                <span class="text-sm font-medium text-slate-700">{{ member.name }}</span>
+                <span class="text-xs text-slate-400 ml-1.5">(由 {{ member.uploadedBy }} 添加)</span>
+              </div>
+            </div>
+            <button 
+              (click)="removeMember(member.name)" 
+              [disabled]="!canRemove(member)"
+              [title]="canRemove(member) ? '删除' : '无权限'"
+              class="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-25 disabled:hover:text-slate-400 disabled:cursor-not-allowed">
+              <i class="fas fa-trash-alt fa-sm"></i>
+            </button>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="text-sm text-slate-500 mb-6">尚未添加任何课表。</p>
+    }
+
+    <button 
+      (click)="exportSchedules()"
+      [disabled]="teamMembers().length === 0"
+      class="w-full bg-slate-100 text-slate-700 font-bold py-2.5 px-4 rounded-md hover:bg-slate-200 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm border border-slate-200">
+      <i class="fa-solid fa-download mr-2"></i>
+      <span>导出所有课表</span>
+    </button>
+  </div>
+</div>

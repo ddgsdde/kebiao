@@ -1,0 +1,28 @@
+<div class="bg-white rounded-lg p-6 shadow-md">
+  <h2 class="text-xl font-bold text-slate-800 mb-4">课程颜色</h2>
+  @if (uniqueCourses().length > 0) {
+    <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
+      @for (course of uniqueCourses(); track course) {
+        <div>
+          <h3 class="text-sm font-medium text-slate-700 truncate mb-2" [title]="course">{{ course }}</h3>
+          <div class="flex flex-wrap gap-2">
+            @for(color of colorPalette; track color.bg) {
+              <button
+                (click)="selectColor(course, color)"
+                class="w-6 h-6 rounded-full transition-transform duration-150 ease-in-out focus:outline-none"
+                [class]="color.bg"
+                [class.ring-2]="isColorSelected(course, color)"
+                [class.ring-offset-2]="isColorSelected(course, color)"
+                [class.scale-110]="isColorSelected(course, color)"
+                [class]="isColorSelected(course, color) ? 'ring-teal-500' : 'hover:scale-110'"
+                [title]="color.bg">
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="text-sm text-slate-500">添加课表后可自定义课程颜色。</p>
+  }
+</div>

@@ -1,0 +1,6 @@
+{
+  "name": "Copy of 团队智能大学课程表",
+  "description": "一个适用于团队的智能大学课程表程序。上传个人JSON课表以创建一个统一的、可搜索的周视图和日视图，可在多个设备上访问。",
+  "requestFrame-permissions": [],
+  "requestFramePermissions": []
+}

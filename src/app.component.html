@@ -1,0 +1,93 @@
+@if (authService.currentUser(); as user) {
+  <div class="min-h-screen">
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-slate-900">
+          <i class="fa-solid fa-users-viewfinder text-teal-600 mr-2"></i>团队课表中心
+        </h1>
+        <div class="flex items-center gap-4">
+          <span class="text-sm text-slate-600 hidden sm:inline">
+            欢迎, <span class="font-bold">{{ user.username }}</span>
+            @if(user.role === 'admin') {
+              <span class="ml-1.5 text-xs bg-teal-100 text-teal-700 font-semibold px-2 py-0.5 rounded-full">管理员</span>
+            }
+          </span>
+          <button (click)="showChangePasswordModal.set(true)" class="text-sm text-slate-500 hover:text-teal-600 font-medium transition-colors">
+            <i class="fa-solid fa-key mr-1"></i>修改密码
+          </button>
+          <button (click)="authService.logout()" class="text-sm text-slate-500 hover:text-teal-600 font-medium transition-colors">
+            <i class="fa-solid fa-right-from-bracket mr-1"></i>登出
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] lg:gap-8">
+        <!-- Left Sidebar -->
+        <aside class="space-y-8">
+          <app-schedule-uploader></app-schedule-uploader>
+          <app-course-color-manager></app-course-color-manager>
+          @if(user.role === 'admin') {
+            <app-user-manager></app-user-manager>
+          }
+        </aside>
+        
+        <!-- Main Content -->
+        <section>
+          <app-schedule-viewer></app-schedule-viewer>
+        </section>
+      </div>
+    </main>
+
+    @if(showChangePasswordModal()) {
+      <app-change-password (close)="showChangePasswordModal.set(false)"></app-change-password>
+    }
+  </div>
+} @else {
+  <div class="min-h-screen flex items-center justify-center bg-gray-50">
+    <div class="w-full max-w-sm p-8 bg-white rounded-xl shadow-lg">
+      <div class="text-center mb-8">
+        <i class="fa-solid fa-users-viewfinder text-teal-600 text-5xl"></i>
+        <h1 class="text-3xl font-bold text-slate-900 mt-4">团队课表中心</h1>
+        <p class="text-slate-500 mt-2">请登录以继续</p>
+      </div>
+      <form (submit)="login()">
+        <div class="space-y-4">
+          <div>
+            <label for="username" class="block text-sm font-medium text-slate-700 mb-1">用户名</label>
+            <input 
+              id="username"
+              type="text"
+              required
+              autocomplete="username"
+              [value]="username()"
+              (input)="username.set($any($event.target).value)"
+              class="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500"
+              placeholder="输入 'admin'"
+            />
+          </div>
+          <div>
+            <label for="password" class="block text-sm font-medium text-slate-700 mb-1">密码</label>
+            <input 
+              id="password"
+              type="password"
+              required
+              autocomplete="current-password"
+              [value]="password()"
+              (input)="password.set($any($event.target).value)"
+              class="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500"
+              placeholder="默认密码 'admin'"
+            />
+          </div>
+        </div>
+        @if(loginError()) {
+          <p class="text-sm text-red-600 mt-4 text-center">{{ loginError() }}</p>
+        }
+        <button type="submit" class="w-full mt-6 bg-teal-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all shadow-sm">
+          登录
+        </button>
+      </form>
+    </div>
+  </div>
+}
